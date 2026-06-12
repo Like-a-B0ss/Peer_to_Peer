@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat P2P Docker</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-soft: #0d1a2b;
+      --panel: rgba(10, 20, 36, 0.88);
+      --panel-strong: rgba(12, 24, 43, 0.98);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --accent-2: #38bdf8;
+      --success: #34d399;
+      --shadow: 0 28px 60px rgba(2, 8, 23, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 24%),
+        radial-gradient(circle at bottom center, rgba(52, 211, 153, 0.12), transparent 20%),
+        linear-gradient(180deg, #020817 0%, var(--bg) 48%, #030712 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 90%);
+    }
+
+    .layout {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 36px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero,
+    .panel {
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      padding: 28px;
+    }
+
+    .hero::after,
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, 0.12);
+      border: 1px solid rgba(34, 211, 238, 0.2);
+      color: #baf6ff;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .badge::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 16px rgba(52, 211, 153, 0.7);
+    }
+
+    .hero h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.6;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    .stat {
+      min-width: 150px;
+      padding: 14px 16px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+    }
+
+    .panel {
+      padding: 20px;
+      background: var(--panel-strong);
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      letter-spacing: 0.02em;
+    }
+
+    .messages {
+      height: 480px;
+      min-height: 480px;
+      max-height: 480px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: grid;
+      gap: 12px;
+      padding-right: 6px;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+    }
+
+    .message {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(34, 211, 238, 0.08);
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 15, 29, 0.96));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    }
+
+    .message:hover {
+      border-color: rgba(34, 211, 238, 0.18);
+      transform: translateY(-1px);
+      transition: 160ms ease;
+    }
+
+    .meta {
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .content {
+      line-height: 1.55;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .empty {
+      display: grid;
+      place-items: center;
+      min-height: 220px;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      border-radius: 20px;
+      border: 1px dashed rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.56);
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    input,
+    textarea,
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      font: inherit;
+    }
+
+    input,
+    textarea {
+      padding: 14px 16px;
+      color: var(--text);
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #64748b;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: rgba(34, 211, 238, 0.45);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    textarea {
+      height: 130px;
+      min-height: 130px;
+      max-height: 130px;
+      resize: none;
+      overflow-y: auto;
+    }
+
+    button {
+      padding: 14px 16px;
+      font-weight: 700;
+      color: #031522;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 16px 28px rgba(14, 165, 233, 0.3);
+      transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+      box-shadow: 0 18px 32px rgba(14, 165, 233, 0.36);
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .peer-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .peer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(15, 23, 42, 0.74);
+      color: #d8e7f7;
+      font-family: Consolas, monospace;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+
+    .peer::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex: none;
+      box-shadow: 0 0 14px rgba(34, 211, 238, 0.55);
+    }
+
+    .panel-note {
+      margin: -6px 0 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 920px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .messages {
+        height: 380px;
+        min-height: 380px;
+        max-height: 380px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .layout {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      .hero,
+      .panel {
+        border-radius: 20px;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <div class="badge" id="peer-name">peer</div>
+          <h1>Dark Mesh Chat</h1>
+          <p>Este navegador conversa com o peer local, e o peer propaga mensagens para os demais nós da rede P2P em tempo real.</p>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-label">Mensagens</span>
+          <span class="stat-value" id="message-count">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Peers Conhecidos</span>
+          <span class="stat-value" id="peer-count">0</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Fluxo da Rede</h2>
+        <p class="panel-note">Mensagens propagadas entre peers conectados. Cada nó mantém histórico local e sincroniza o que recebe da malha.</p>
+        <div class="messages" id="messages"></div>
+      </div>
+
+      <div class="side-stack">
+        <div class="panel">
+          <h2>Enviar Mensagem</h2>
+          <p class="panel-note">Digite sua mensagem e envie para o peer atual. Ele se encarrega de repassar para os demais.</p>
+          <form id="chat-form">
+            <input id="author" maxlength="30" placeholder="Seu nome" required>
+            <textarea id="content" maxlength="300" placeholder="Digite sua mensagem" required></textarea>
+            <button type="submit">Enviar para a rede</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Peers Conhecidos</h2>
+          <p class="panel-note">Nós descobertos pelo peer local e pela propagação da rede.</p>
+          <div class="peer-list" id="peers"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const peerName = document.getElementById("peer-name");
+    const messageCount = document.getElementById("message-count");
+    const peerCount = document.getElementById("peer-count");
+    const messagesEl = document.getElementById("messages");
+    const peersEl = document.getElementById("peers");
+    const form = document.getElementById("chat-form");
+
+    function formatTimestamp(timestamp) {
+      return new Date(timestamp * 1000).toLocaleTimeString("pt-BR");
+    }
+
+    function renderState(state) {
+      peerName.textContent = `${state.peer_name} | ${state.p2p_address}`;
+      messageCount.textContent = state.messages.length;
+      peerCount.textContent = state.known_peers.length;
+
+      if (!state.messages.length) {
+        messagesEl.innerHTML = '<div class="empty">Nenhuma mensagem ainda. Abra outro peer e envie uma mensagem para ver a propagação.</div>';
+      } else {
+        messagesEl.innerHTML = state.messages.map((msg) => `
+          <article class="message">
+            <div class="meta">${msg.author} via ${msg.origin} às ${formatTimestamp(msg.timestamp)}</div>
+            <div class="content">${msg.content}</div>
+          </article>
+        `).join("");
+      }
+
+      peersEl.innerHTML = state.known_peers.length
+        ? state.known_peers.map((peer) => `<div class="peer">${peer}</div>`).join("")
+        : '<div class="empty">Nenhum peer descoberto ainda.</div>';
+    }
+
+    async function loadState() {
+      const response = await fetch("/api/state");
+      renderState(await response.json());
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const payload = {
+        author: document.getElementById("author").value.trim(),
+        content: document.getElementById("content").value.trim(),
+      };
+
+      if (!payload.author || !payload.content) {
+        return;
+      }
+
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      document.getElementById("content").value = "";
+    });
+
+    loadState();
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
+    socket.onmessage = (event) => renderState(JSON.parse(event.data));
+  </script>
+</body>
+</html>
