@@ -182,6 +182,7 @@
       display: grid;
       gap: 12px;
       padding-right: 6px;
+      scroll-behavior: smooth;
     }
 
     .messages::-webkit-scrollbar {
@@ -428,6 +429,12 @@
       return new Date(timestamp * 1000).toLocaleTimeString("pt-BR");
     }
 
+    function keepLastMessageVisible() {
+      requestAnimationFrame(() => {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      });
+    }
+
     function renderState(state) {
       peerName.textContent = `${state.peer_name} | ${state.p2p_address}`;
       messageCount.textContent = state.messages.length;
@@ -443,6 +450,8 @@
           </article>
         `).join("");
       }
+
+      keepLastMessageVisible();
 
       peersEl.innerHTML = state.known_peers.length
         ? state.known_peers.map((peer) => `<div class="peer">${peer}</div>`).join("")
