@@ -2,7 +2,7 @@
 
 Projeto de demonstracao para sala de aula: cada aluno roda um peer local em Docker e entra na mesma rede P2P para conversar com a turma.
 
-O peer inicial ja deve estar rodando com o professor ou com quem for abrir a rede. Este README cobre apenas o que os peers secundarios precisam fazer.
+O peer inicial deve estar rodando com o professor ou com quem for abrir a rede. Este README cobre principalmente o fluxo dos alunos, mas tambem serve para validar o peer inicial.
 
 ## O que este projeto faz
 
@@ -11,12 +11,14 @@ O peer inicial ja deve estar rodando com o professor ou com quem for abrir a red
 - abre uma interface web de chat em `http://localhost:8000`;
 - salva localmente as ultimas 100 mensagens e os peers conhecidos em SQLite.
 
-## Antes de começar
+## Antes de comecar
 
 Cada aluno precisa instalar:
 
 - Docker Desktop ou Docker Engine: https://docs.docker.com/get-started/get-docker/
 - Tailscale: https://tailscale.com/download
+
+Ao abrir o Tailscale pela primeira vez, faca login com a conta Google institucional `@minha.fag.edu.br`.
 
 Links oficiais usados:
 
@@ -28,13 +30,13 @@ Links oficiais usados:
 Antes de rodar o projeto, o aluno precisa ter:
 
 1. Docker instalado e funcionando.
-2. Tailscale instalado e logado.
+2. Tailscale instalado e logado com a conta Google institucional `@minha.fag.edu.br`.
 3. O IP Tailscale do peer inicial fornecido pelo professor.
 4. Este projeto baixado na maquina.
 
 ## Como descobrir seu IP Tailscale
 
-Depois de instalar e entrar no Tailscale, descubra o IP da sua maquina:
+Depois de instalar e entrar no Tailscale, descubra o IP da sua maquina.
 
 No Windows:
 
@@ -52,10 +54,11 @@ Guarde esse IP. Ele sera usado em `P2P_ADVERTISE_HOST`.
 
 ## Arquivos importantes
 
-- [docker-compose.student.yml](/abs/path/c:/projetos/Peer_to_Peer/docker-compose.student.yml): compose usado pelo aluno
-- [.env.student.example](/abs/path/c:/projetos/Peer_to_Peer/.env.student.example): modelo de configuracao
-- [start-student.ps1](/abs/path/c:/projetos/Peer_to_Peer/start-student.ps1): inicializacao no Windows
-- [start-student.sh](/abs/path/c:/projetos/Peer_to_Peer/start-student.sh): inicializacao no Linux/macOS
+- [docker-compose.student.yml](c:/projetos/Peer_to_Peer/docker-compose.student.yml): compose usado pelo aluno
+- [.env.student.example](c:/projetos/Peer_to_Peer/.env.student.example): modelo de configuracao
+- [start-student.ps1](c:/projetos/Peer_to_Peer/start-student.ps1): inicializacao no Windows
+- [start-student.sh](c:/projetos/Peer_to_Peer/start-student.sh): inicializacao no Linux/macOS
+- [docker-compose.yml](c:/projetos/Peer_to_Peer/docker-compose.yml): compose principal para subir um peer real
 
 ## Configuracao do aluno
 
@@ -88,6 +91,28 @@ O que cada campo significa:
 - `MESSAGE_RATE_LIMIT`: limite de mensagens por peer.
 - `RATE_LIMIT_WINDOW_SECONDS`: janela de tempo do rate limit.
 
+## Configuracao do professor
+
+Se voce for o peer inicial da rede:
+
+- use o seu proprio IP Tailscale em `P2P_ADVERTISE_HOST`;
+- deixe `BOOTSTRAP_PEERS` vazio;
+- entregue para os alunos o endereco `SEU_IP_TAILSCALE:7000`.
+
+Exemplo:
+
+```env
+CONTAINER_NAME=p2p-professor
+PEER_NAME=professor
+HTTP_PORT=8000
+P2P_PORT=7000
+P2P_ADVERTISE_HOST=100.70.29.126
+BOOTSTRAP_PEERS=
+MAX_CONNECTIONS=20
+MESSAGE_RATE_LIMIT=8
+RATE_LIMIT_WINDOW_SECONDS=10
+```
+
 ## Como executar
 
 ### Windows
@@ -107,12 +132,16 @@ chmod +x start-student.sh
 ./start-student.sh
 ```
 
-### Alternativa manual
-
-Se preferir, rode direto com Docker Compose:
+### Alternativa manual para aluno
 
 ```bash
 docker compose --env-file .env.student -f docker-compose.student.yml up --build
+```
+
+### Alternativa manual para professor ou peer principal
+
+```bash
+docker compose --env-file .env.student -f docker-compose.yml up --build
 ```
 
 ## Como abrir o chat
@@ -123,7 +152,7 @@ Depois que o container subir, abra:
 http://localhost:8000
 ```
 
-Se o aluno estiver rodando mais de um peer na mesma maquina, mude `HTTP_PORT` no `.env.student`.
+Se estiver rodando mais de um peer na mesma maquina, mude `HTTP_PORT` no `.env.student`.
 
 ## O que esperar quando funcionar
 
@@ -134,7 +163,7 @@ Se o aluno estiver rodando mais de um peer na mesma maquina, mude `HTTP_PORT` no
 
 ## Persistencia
 
-Cada aluno tem persistencia local em volume Docker:
+Cada peer tem persistencia local em volume Docker:
 
 - banco SQLite em `/data/chat.db`;
 - mensagens permanecem apos reinicio do container;
@@ -159,8 +188,9 @@ Padrao atual:
 
 `Tailscale nao responde`
 
-- confirme que o aplicativo esta instalado e logado;
-- teste `tailscale ip -4` ou o comando equivalente no Windows.
+- confirme que o aplicativo esta instalado e logado com a conta `@minha.fag.edu.br`;
+- teste `tailscale ip -4` ou o comando equivalente no Windows;
+- teste `tailscale status` para confirmar se voce esta na mesma tailnet da turma.
 
 `Docker nao sobe o projeto`
 
@@ -172,7 +202,8 @@ Padrao atual:
 
 - confira se `BOOTSTRAP_PEERS` aponta para o IP correto do peer inicial;
 - confira se `P2P_ADVERTISE_HOST` e o IP Tailscale da sua maquina;
-- confira se o peer inicial ainda esta online.
+- confira se o peer inicial ainda esta online;
+- confirme que voce esta logado no Tailscale com a conta Google institucional `@minha.fag.edu.br`.
 
 `A porta 8000 esta ocupada`
 
@@ -181,12 +212,13 @@ Padrao atual:
 
 ## Estrutura do projeto
 
-- [app.py](/abs/path/c:/projetos/Peer_to_Peer/app.py): no P2P + API HTTP + WebSocket
-- [static/index.html](/abs/path/c:/projetos/Peer_to_Peer/static/index.html): interface web
-- [Dockerfile](/abs/path/c:/projetos/Peer_to_Peer/Dockerfile): imagem da aplicacao
-- [docker-compose.student.yml](/abs/path/c:/projetos/Peer_to_Peer/docker-compose.student.yml): compose para alunos
+- [app.py](c:/projetos/Peer_to_Peer/app.py): no P2P, API HTTP e WebSocket
+- [static/index.html](c:/projetos/Peer_to_Peer/static/index.html): interface web
+- [Dockerfile](c:/projetos/Peer_to_Peer/Dockerfile): imagem da aplicacao
+- [docker-compose.yml](c:/projetos/Peer_to_Peer/docker-compose.yml): compose principal para peer real
+- [docker-compose.student.yml](c:/projetos/Peer_to_Peer/docker-compose.student.yml): compose para alunos
 
-Fontes:
+## Fontes
 
 - Docker Docs: https://docs.docker.com/get-started/get-docker/
 - Tailscale Download: https://tailscale.com/download

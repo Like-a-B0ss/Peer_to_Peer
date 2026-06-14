@@ -1,79 +1,21 @@
 services:
-  bootstrap:
+  peer:
     build: .
-    container_name: p2p-bootstrap
+    container_name: ${CONTAINER_NAME:-p2p-bootstrap}
     environment:
-      PEER_NAME: bootstrap
-      HTTP_PORT: 8000
-      P2P_PORT: 7000
-      P2P_ADVERTISE_HOST: bootstrap
-      MAX_CONNECTIONS: 20
-      MESSAGE_RATE_LIMIT: 8
-      RATE_LIMIT_WINDOW_SECONDS: 10
+      PEER_NAME: ${PEER_NAME:-bootstrap}
+      HTTP_PORT: ${HTTP_PORT:-8000}
+      P2P_PORT: ${P2P_PORT:-7000}
+      P2P_ADVERTISE_HOST: ${P2P_ADVERTISE_HOST}
+      BOOTSTRAP_PEERS: ${BOOTSTRAP_PEERS:-}
+      MAX_CONNECTIONS: ${MAX_CONNECTIONS:-20}
+      MESSAGE_RATE_LIMIT: ${MESSAGE_RATE_LIMIT:-8}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-10}
     ports:
-      - "8080:8000"
+      - "${HTTP_PORT:-8000}:8000"
+      - "${P2P_PORT:-7000}:7000"
     volumes:
       - bootstrap_data:/data
 
-  alice:
-    build: .
-    container_name: p2p-alice
-    environment:
-      PEER_NAME: alice
-      HTTP_PORT: 8000
-      P2P_PORT: 7000
-      P2P_ADVERTISE_HOST: alice
-      BOOTSTRAP_PEERS: bootstrap:7000
-      MAX_CONNECTIONS: 20
-      MESSAGE_RATE_LIMIT: 8
-      RATE_LIMIT_WINDOW_SECONDS: 10
-    depends_on:
-      - bootstrap
-    ports:
-      - "8081:8000"
-    volumes:
-      - alice_data:/data
-
-  bob:
-    build: .
-    container_name: p2p-bob
-    environment:
-      PEER_NAME: bob
-      HTTP_PORT: 8000
-      P2P_PORT: 7000
-      P2P_ADVERTISE_HOST: bob
-      BOOTSTRAP_PEERS: bootstrap:7000
-      MAX_CONNECTIONS: 20
-      MESSAGE_RATE_LIMIT: 8
-      RATE_LIMIT_WINDOW_SECONDS: 10
-    depends_on:
-      - bootstrap
-    ports:
-      - "8082:8000"
-    volumes:
-      - bob_data:/data
-
-  carol:
-    build: .
-    container_name: p2p-carol
-    environment:
-      PEER_NAME: carol
-      HTTP_PORT: 8000
-      P2P_PORT: 7000
-      P2P_ADVERTISE_HOST: carol
-      BOOTSTRAP_PEERS: bootstrap:7000
-      MAX_CONNECTIONS: 20
-      MESSAGE_RATE_LIMIT: 8
-      RATE_LIMIT_WINDOW_SECONDS: 10
-    depends_on:
-      - bootstrap
-    ports:
-      - "8083:8000"
-    volumes:
-      - carol_data:/data
-
 volumes:
   bootstrap_data:
-  alice_data:
-  bob_data:
-  carol_data:
