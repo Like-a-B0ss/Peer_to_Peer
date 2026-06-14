@@ -429,6 +429,11 @@
       return new Date(timestamp * 1000).toLocaleTimeString("pt-BR");
     }
 
+    function isReadingLatestMessages() {
+      const threshold = 48;
+      return messagesEl.scrollTop + messagesEl.clientHeight >= messagesEl.scrollHeight - threshold;
+    }
+
     function keepLastMessageVisible() {
       requestAnimationFrame(() => {
         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -436,6 +441,8 @@
     }
 
     function renderState(state) {
+      const shouldStickToBottom = !messagesEl.children.length || isReadingLatestMessages();
+
       peerName.textContent = `${state.peer_name} | ${state.p2p_address}`;
       messageCount.textContent = state.messages.length;
       peerCount.textContent = state.known_peers.length;
@@ -451,7 +458,9 @@
         `).join("");
       }
 
-      keepLastMessageVisible();
+      if (shouldStickToBottom) {
+        keepLastMessageVisible();
+      }
 
       peersEl.innerHTML = state.known_peers.length
         ? state.known_peers.map((peer) => `<div class="peer">${peer}</div>`).join("")
