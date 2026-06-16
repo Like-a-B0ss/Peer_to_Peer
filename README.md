@@ -46,6 +46,7 @@ Todos os peers precisam estar na mesma rede e conseguir se alcancar pelo IP loca
 
 1. Copie `.env.student.example` para `.env.student`.
 2. Edite o arquivo `.env.student`.
+3. Troque `P2P_ADVERTISE_HOST` pelo IP local da maquina do aluno.
 
 Exemplo:
 
@@ -54,10 +55,10 @@ CONTAINER_NAME=p2p-aluno1
 PEER_NAME=aluno1
 HTTP_PORT=8000
 P2P_PORT=7000
-P2P_ADVERTISE_HOST=192.168.1.10
+P2P_ADVERTISE_HOST=SEU_IP_LOCAL
 P2P_ADVERTISE_PORT=7000
-BOOTSTRAP_PEERS=192.168.1.20:7000
-MAX_CONNECTIONS=20
+BOOTSTRAP_PEERS=10.47.6.142:7000
+MAX_CONNECTIONS=50
 MESSAGE_RATE_LIMIT=8
 RATE_LIMIT_WINDOW_SECONDS=10
 ```
@@ -82,19 +83,19 @@ Se voce for o peer inicial da rede:
 - use o seu proprio IP local em `P2P_ADVERTISE_HOST`;
 - use a porta local em `P2P_ADVERTISE_PORT`;
 - deixe `BOOTSTRAP_PEERS` vazio;
-- entregue para os demais o endereco `SEU_IP_LOCAL:SUA_PORTA`.
+- entregue para os demais o endereco `10.47.6.142:7000` ou o IP local atual da sua maquina, se ele mudar.
 
 Exemplo:
 
 ```env
-CONTAINER_NAME=p2p-professor
-PEER_NAME=professor
+CONTAINER_NAME=p2p-inicial
+PEER_NAME=peer-inicial
 HTTP_PORT=8000
 P2P_PORT=7000
-P2P_ADVERTISE_HOST=192.168.1.20
+P2P_ADVERTISE_HOST=10.47.6.142
 P2P_ADVERTISE_PORT=7000
 BOOTSTRAP_PEERS=
-MAX_CONNECTIONS=20
+MAX_CONNECTIONS=50
 MESSAGE_RATE_LIMIT=8
 RATE_LIMIT_WINDOW_SECONDS=10
 ```
@@ -124,7 +125,7 @@ chmod +x start-student.sh
 docker compose --env-file .env.student -f docker-compose.student.yml up --build
 ```
 
-### Alternativa manual para professor ou peer principal
+### Alternativa manual para peer principal
 
 ```bash
 docker compose --env-file .env.student -f docker-compose.yml up --build
@@ -135,7 +136,7 @@ docker compose --env-file .env.student -f docker-compose.yml up --build
 Depois que o container subir, abra no navegador da propria maquina:
 
 ```text
-http://localhost:HTTP_PORT
+http://localhost:8000
 ```
 
 Se estiver rodando mais de um peer na mesma maquina, mude `HTTP_PORT` no `.env.student`.
@@ -167,7 +168,7 @@ O projeto usa protecoes simples contra abuso:
 
 Padrao atual:
 
-- `20` conexoes
+- `50` conexoes
 - `8` mensagens por `10` segundos por peer
 
 ## Problemas comuns
