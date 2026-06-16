@@ -25,6 +25,7 @@ class PeerNode:
         self.p2p_bind_host = os.getenv("P2P_BIND_HOST", "0.0.0.0")
         self.p2p_port = int(os.getenv("P2P_PORT", "7000"))
         self.p2p_advertise_host = os.getenv("P2P_ADVERTISE_HOST", self.peer_name)
+        self.p2p_advertise_port = int(os.getenv("P2P_ADVERTISE_PORT", str(self.p2p_port)))
         self.bootstrap_peers = self._parse_peers(os.getenv("BOOTSTRAP_PEERS", ""))
         self.db_path = os.getenv("DB_PATH", "/data/chat.db")
         self.max_connections = int(os.getenv("MAX_CONNECTIONS", "20"))
@@ -49,7 +50,7 @@ class PeerNode:
         return peers
 
     def _self_address(self) -> str:
-        return f"{self.p2p_advertise_host}:{self.p2p_port}"
+        return f"{self.p2p_advertise_host}:{self.p2p_advertise_port}"
 
     async def start(self) -> None:
         self.init_db()

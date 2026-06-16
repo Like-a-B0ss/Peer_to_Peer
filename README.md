@@ -1,56 +1,38 @@
 # Chat Peer-to-Peer com Docker
 
-Projeto de demonstracao para sala de aula: cada aluno roda um peer local em Docker e entra na mesma rede P2P para conversar com a turma.
+Projeto de demonstracao para rodar um peer local em Docker e conectar varios peers na mesma rede interna, como o Wi-Fi da casa, laboratorio ou sala.
 
-O peer inicial deve estar rodando com o professor ou com quem for abrir a rede. Este README cobre principalmente o fluxo dos alunos, mas tambem serve para validar o peer inicial.
+Um peer inicial precisa estar acessivel para os demais entrarem na rede. Este README cobre tanto o peer inicial quanto os peers que vao se conectar.
 
 ## O que este projeto faz
 
 - sobe um peer local em Docker;
-- conecta esse peer a uma rede P2P usando Tailscale;
+- conecta esse peer a uma rede P2P pela rede local;
 - abre uma interface web de chat em `http://localhost:8000`;
 - salva localmente as ultimas 100 mensagens e os peers conhecidos em SQLite.
 
 ## Antes de comecar
 
-Cada aluno precisa instalar:
+Cada maquina precisa instalar:
 
 - Docker Desktop ou Docker Engine: https://docs.docker.com/get-started/get-docker/
-- Tailscale: https://tailscale.com/download
-
-Ao abrir o Tailscale pela primeira vez, faca login com a conta Google institucional `@minha.fag.edu.br`.
-
-Links oficiais usados:
-
-- Docker Docs: https://docs.docker.com/get-started/get-docker/
-- Tailscale Download: https://tailscale.com/download
 
 ## Requisitos para entrar na rede
 
-Antes de rodar o projeto, o aluno precisa ter:
+Antes de rodar o projeto, voce precisa ter:
 
 1. Docker instalado e funcionando.
-2. Tailscale instalado e logado com a conta Google institucional `@minha.fag.edu.br`.
-3. O IP Tailscale do peer inicial fornecido pelo professor.
-4. Este projeto baixado na maquina.
+2. Este projeto baixado na maquina.
+3. O IP local do peer inicial na mesma rede Wi-Fi ou LAN.
 
-## Como descobrir seu IP Tailscale
+## Endereco anunciado do peer
 
-Depois de instalar e entrar no Tailscale, descubra o IP da sua maquina.
+Cada peer anuncia para os outros um endereco no formato `host:porta`.
 
-No Windows:
+- `P2P_ADVERTISE_HOST`: IP local da maquina dentro da rede.
+- `P2P_ADVERTISE_PORT`: porta anunciada para conexoes P2P.
 
-```powershell
-& "C:\Program Files\Tailscale\tailscale.exe" ip -4
-```
-
-No Linux ou macOS:
-
-```bash
-tailscale ip -4
-```
-
-Guarde esse IP. Ele sera usado em `P2P_ADVERTISE_HOST`.
+Todos os peers precisam estar na mesma rede e conseguir se alcancar pelo IP local.
 
 ## Arquivos importantes
 
@@ -72,8 +54,9 @@ CONTAINER_NAME=p2p-aluno1
 PEER_NAME=aluno1
 HTTP_PORT=8000
 P2P_PORT=7000
-P2P_ADVERTISE_HOST=100.70.29.126
-BOOTSTRAP_PEERS=100.88.10.20:7000
+P2P_ADVERTISE_HOST=192.168.1.10
+P2P_ADVERTISE_PORT=7000
+BOOTSTRAP_PEERS=192.168.1.20:7000
 MAX_CONNECTIONS=20
 MESSAGE_RATE_LIMIT=8
 RATE_LIMIT_WINDOW_SECONDS=10
@@ -84,20 +67,22 @@ O que cada campo significa:
 - `CONTAINER_NAME`: nome local do container Docker.
 - `PEER_NAME`: nome que identifica o aluno no peer.
 - `HTTP_PORT`: porta local da interface web.
-- `P2P_PORT`: porta local usada pelo peer.
-- `P2P_ADVERTISE_HOST`: IP Tailscale da maquina do aluno.
-- `BOOTSTRAP_PEERS`: IP e porta do peer inicial.
+- `P2P_PORT`: porta TCP em que o peer escuta conexoes P2P.
+- `P2P_ADVERTISE_HOST`: IP local anunciado aos outros peers.
+- `P2P_ADVERTISE_PORT`: porta anunciada aos outros peers.
+- `BOOTSTRAP_PEERS`: IP local e porta do peer inicial.
 - `MAX_CONNECTIONS`: limite de conexoes P2P simultaneas.
 - `MESSAGE_RATE_LIMIT`: limite de mensagens por peer.
 - `RATE_LIMIT_WINDOW_SECONDS`: janela de tempo do rate limit.
 
-## Configuracao do professor
+## Configuracao do peer inicial
 
 Se voce for o peer inicial da rede:
 
-- use o seu proprio IP Tailscale em `P2P_ADVERTISE_HOST`;
+- use o seu proprio IP local em `P2P_ADVERTISE_HOST`;
+- use a porta local em `P2P_ADVERTISE_PORT`;
 - deixe `BOOTSTRAP_PEERS` vazio;
-- entregue para os alunos o endereco `SEU_IP_TAILSCALE:7000`.
+- entregue para os demais o endereco `SEU_IP_LOCAL:SUA_PORTA`.
 
 Exemplo:
 
@@ -106,7 +91,8 @@ CONTAINER_NAME=p2p-professor
 PEER_NAME=professor
 HTTP_PORT=8000
 P2P_PORT=7000
-P2P_ADVERTISE_HOST=100.70.29.126
+P2P_ADVERTISE_HOST=192.168.1.20
+P2P_ADVERTISE_PORT=7000
 BOOTSTRAP_PEERS=
 MAX_CONNECTIONS=20
 MESSAGE_RATE_LIMIT=8
@@ -146,10 +132,10 @@ docker compose --env-file .env.student -f docker-compose.yml up --build
 
 ## Como abrir o chat
 
-Depois que o container subir, abra:
+Depois que o container subir, abra no navegador da propria maquina:
 
 ```text
-http://localhost:8000
+http://localhost:HTTP_PORT
 ```
 
 Se estiver rodando mais de um peer na mesma maquina, mude `HTTP_PORT` no `.env.student`.
@@ -186,12 +172,6 @@ Padrao atual:
 
 ## Problemas comuns
 
-`Tailscale nao responde`
-
-- confirme que o aplicativo esta instalado e logado com a conta `@minha.fag.edu.br`;
-- teste `tailscale ip -4` ou o comando equivalente no Windows;
-- teste `tailscale status` para confirmar se voce esta na mesma tailnet da turma.
-
 `Docker nao sobe o projeto`
 
 - confirme que o Docker Desktop esta aberto;
@@ -200,10 +180,10 @@ Padrao atual:
 
 `Nao conecta ao chat da turma`
 
-- confira se `BOOTSTRAP_PEERS` aponta para o IP correto do peer inicial;
-- confira se `P2P_ADVERTISE_HOST` e o IP Tailscale da sua maquina;
-- confira se o peer inicial ainda esta online;
-- confirme que voce esta logado no Tailscale com a conta Google institucional `@minha.fag.edu.br`.
+- confira se `BOOTSTRAP_PEERS` aponta para o IP local e porta corretos do peer inicial;
+- confira se `P2P_ADVERTISE_HOST` e `P2P_ADVERTISE_PORT` sao alcancaveis a partir de outra maquina da mesma rede;
+- confira se os dois dispositivos estao no mesmo Wi-Fi ou na mesma LAN;
+- confira se o peer inicial ainda esta online.
 
 `A porta 8000 esta ocupada`
 
@@ -221,4 +201,3 @@ Padrao atual:
 ## Fontes
 
 - Docker Docs: https://docs.docker.com/get-started/get-docker/
-- Tailscale Download: https://tailscale.com/download
